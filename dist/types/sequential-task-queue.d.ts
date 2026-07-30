@@ -1,3 +1,5 @@
+type EventHandler = (...args: any[]) => void;
+type Task = (...args: any[]) => unknown;
 /**
  * Represents an object that schedules a function for asynchronous execution.
  * The default implementation used by {@link SequentialTaskQueue} calls {@link setImmediate} when available,
@@ -9,7 +11,7 @@ export interface Scheduler {
     /**
      * Schedules a callback for asynchronous execution.
      */
-    schedule(callback: Function): void;
+    schedule(callback: () => void): void;
 }
 /**
  * Object used for passing configuration options to the {@link SequentialTaskQueue} constructor.
@@ -48,7 +50,7 @@ export interface TaskOptions {
      *     console.log(n);
      * }
      */
-    args?: any;
+    args?: unknown;
 }
 /**
  * Provides the API for querying and invoking task cancellation.
@@ -61,28 +63,26 @@ export interface CancellationToken {
     /**
      * An arbitrary object representing the reason of the cancellation. Can be a member of the {@link cancellationTokenReasons} object or an `Error`, etc.
      */
-    reason?: any;
+    reason?: unknown;
     /**
      * Cancels the task for which the cancellation token was created.
      * @param reason - The reason of the cancellation, see {@link CancellationToken.reason}
      */
-    cancel(reason?: any): any;
+    cancel(reason?: unknown): void;
 }
 /**
  * Standard cancellation reasons. {@link SequentialTaskQueue} sets {@link CancellationToken.reason}
  * to one of these values when cancelling a task for a reason other than the user code calling
  * {@link CancellationToken.cancel}.
  */
-export declare var cancellationTokenReasons: {
-    /** Used when the task was cancelled in response to a call to {@link SequentialTaskQueue.cancel} */
-    cancel: any;
-    /** Used when the task was cancelled after its timeout has passed */
-    timeout: any;
+export declare const cancellationTokenReasons: {
+    cancel: unknown;
+    timeout: unknown;
 };
 /**
  * Standard event names used by {@link SequentialTaskQueue}
  */
-export declare var sequentialTaskQueueEvents: {
+export declare const sequentialTaskQueueEvents: {
     drained: string;
     error: string;
     timeout: string;
@@ -95,7 +95,7 @@ export interface CancellablePromiseLike<T> extends PromiseLike<T> {
      * Cancels (and consequently, rejects) the task associated with the Promise.
      * @param reason - Reason of the cancellation. This value will be passed when rejecting this Promise.
      */
-    cancel(reason?: any): void;
+    cancel(reason?: unknown): void;
 }
 /**
  * FIFO task queue to run tasks in predictable order, without concurrency.
@@ -105,8 +105,8 @@ export declare class SequentialTaskQueue {
     private queue;
     private _isClosed;
     private waiters;
-    private defaultTimeout;
-    private currentTask;
+    private defaultTimeout?;
+    private currentTask?;
     private scheduler;
     private events;
     name: string;
@@ -123,49 +123,50 @@ export declare class SequentialTaskQueue {
      * @param {TaskOptions} options - An object containing arguments and options for the task.
      * @returns {CancellablePromiseLike<any>} A promise that can be used to await or cancel the task.
      */
-    push(task: Function, options?: TaskOptions): CancellablePromiseLike<any>;
+    push(task: Task, options?: TaskOptions): CancellablePromiseLike<unknown>;
     /**
      * Cancels the currently running task (if any), and clears the queue.
-     * @param {any} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}.
+     * @param {unknown} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}.
      * @returns {Promise} A Promise that is fulfilled when the queue is empty and the current task has been cancelled.
      */
-    cancel(reason?: any): PromiseLike<any>;
+    cancel(reason?: unknown): PromiseLike<unknown>;
     /**
      * Closes the queue, preventing new tasks to be added.
      * Any calls to {@link SequentialTaskQueue.push} after closing the queue will result in an exception.
      * @param {boolean} cancel - Indicates that the queue should also be cancelled.
-     * @param {any} reason - The reason of the cancellation, passed to {@link SequentialTaskQueue.cancel} when `cancel` is `true`.
+     * @param {unknown} reason - The reason of the cancellation, passed to {@link SequentialTaskQueue.cancel} when `cancel` is `true`.
      * @returns {Promise} A Promise that is fulfilled when the queue has finished executing remaining tasks.
      */
-    close(cancel?: boolean, reason?: any): PromiseLike<any>;
+    close(cancel?: boolean, reason?: unknown): PromiseLike<unknown>;
     /**
      * Returns a promise that is fulfilled when the queue is empty.
      * @returns {Promise}
      */
-    wait(): PromiseLike<any>;
+    wait(): PromiseLike<unknown>;
     /**
      * Adds an event handler for a named event.
      * @param {string} evt - Event name. See the readme for a list of valid events.
      * @param {Function} handler - Event handler. When invoking the handler, the queue will set itself as the `this` argument of the call.
      */
-    on(evt: string, handler: Function): void;
+    on(evt: string, handler: EventHandler): void;
     /**
      * Adds a single-shot event handler for a named event.
      * @param {string} evt - Event name. See the readme for a list of valid events.
      * @param {Function} handler - Event handler. When invoking the handler, the queue will set itself as the `this` argument of the call.
      */
-    once(evt: string, handler: Function): void;
+    once(evt: string, handler: EventHandler): void;
     /**
      * Removes an event handler.
      * @param {string} evt - Event name
      * @param {Function} handler - Event handler to be removed
      */
-    removeListener(evt: string, handler: Function): void;
+    removeListener(evt: string, handler: EventHandler): void;
     /** @see {@link SequentialTaskQueue.removeListener} */
-    off(evt: string, handler: Function): void;
+    off(evt: string, handler: EventHandler): void;
     protected emit(evt: string, ...args: any[]): void;
     protected next(): void;
     private cancelTask;
     private doneTask;
     private callWaiters;
 }
+export {};

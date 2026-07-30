@@ -10,7 +10,7 @@ This is especially useful when the application state is frequently mutated in re
 Use `push` to add tasks to the queue. The method returns a `Promise` that will fulfill when the task has been executed or cancelled.
 
 ```js
-var queue = new SequentialTaskQueue();
+const queue = new SequentialTaskQueue();
 queue.push(() => {
     console.log("first task");
 });
@@ -25,7 +25,7 @@ If the function passed to `push` returns a `Promise`, the queue will wait for it
 Rejected promises don't cause the queue to stop executing tasks, but are reported in the `error` event (see below).  
 
 ```js
-var queue = new SequentialTaskQueue();
+const queue = new SequentialTaskQueue();
 queue.push(() => {
     console.log("1");
 });
@@ -41,7 +41,7 @@ queue.push(() => {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             console.log("3");
-            reject();
+            reject(new Error("3 failed"));
         }, 100);
     });
 });
@@ -64,15 +64,16 @@ for every task pushed to the queue, and passing it (to the task function) as the
 has been cancelled. The `Promise` returned by `push` is extended with a `cancel` method so that individual tasks can be cancelled.
 
 ```js
-var queue = new SequentialTaskQueue();
-var task = queue.push((token: CancellationToken) => {
-    return new Promise((resolve, reject) => {
+const queue = new SequentialTaskQueue();
+const task = queue.push((token: CancellationToken) => {
+    return new Promise((resolve, _reject) => {
         setTimeout(resolve, 100);
     }).then(() => new Promise<void>((resolve, reject) => {
-        if (token.cancelled)
-            reject();
-        else
+        if (token.cancelled) {
+            reject(new Error("cancelled"));
+        } else {
             resolve();
+        }
     })).then(() => {
         throw new Error("Should not ever get here");
     });
@@ -94,9 +95,9 @@ Tasks can be pushed into the queue with a timeout, after which the queue will ca
 The timeout value is supplied to `push` in the second argument, which is interpreted as an options object for the task:
 
 ```js
-var queue = new SequentialTaskQueue();
+const queue = new SequentialTaskQueue();
 // ...
-function onEcho(query: string) {
+function onEcho(query: string): void {
     queue.push((token: CancellationToken) => 
         backend.echo(query).then(response => {
             if (!token.cancelled) {
@@ -128,7 +129,7 @@ backend.on("notification", (data: string) => {
     queue.push(handleNotifiation, { args: data });
 });
 
-function handleNotifiation(data: string) {
+function handleNotifiation(data: string): void {
     console.log(data);
     // todo: do something with data
 }
@@ -144,7 +145,7 @@ since the cancellation token would be appended.
 Use the `wait` method to obtain a `Promise` that fulfills when the queue is empty:
   
 ```js
-var queue = new SequentialTaskQueue();
+const queue = new SequentialTaskQueue();
 queue.push(task1);
 queue.push(task2);
 queue.push(task3);
@@ -159,9 +160,9 @@ Calling `push` on a closed queue will throw an exception. Optionally, `close` ca
 to do so, pass a truthful value as its first parameter.
 
 ```js
-var queue = new SequentialTaskQueue();
+const queue = new SequentialTaskQueue();
 // ...
-function deactivate(done: () => void) {
+function deactivate(done: () => void): void {
     queue.close(true).then(done);                
 } 
 ```
