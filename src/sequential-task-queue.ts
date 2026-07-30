@@ -70,7 +70,7 @@ export interface CancellationToken {
      * Cancels the task for which the cancellation token was created.
      * @param reason - The reason of the cancellation, see {@link CancellationToken.reason} 
      */
-    cancel(reason?: any);
+    cancel(reason?: any): void;
 }
 
 /**
@@ -117,10 +117,10 @@ export class SequentialTaskQueue {
     private queue: TaskEntry[] = [];
     private _isClosed: boolean = false;
     private waiters: Function[] = [];
-    private defaultTimeout: number;
-    private currentTask: TaskEntry;
+    private defaultTimeout?: number;
+    private currentTask?: TaskEntry;
     private scheduler: Scheduler;
-    private events: { [key: string]: Function[] };
+    private events: { [key: string]: Function[] } = {};
 
     name: string;
 
@@ -148,8 +148,10 @@ export class SequentialTaskQueue {
      * @returns {CancellablePromiseLike<any>} A promise that can be used to await or cancel the task.
      */
     push(task: Function, options?: TaskOptions): CancellablePromiseLike<any> {
-        if (this._isClosed)
+        if (this._isClosed) {
             throw new Error(`${this.name} has been previously closed`);
+        }
+        
         var taskEntry: TaskEntry = {
             callback: task,
             args: options && options.args ? (Array.isArray(options.args) ? options.args.slice() : [options.args]) : [],
@@ -265,53 +267,65 @@ export class SequentialTaskQueue {
     }
 
     protected emit(evt: string, ...args: any[]) {
-        if (this.events && this.events[evt])
-            try { 
-                this.events[evt].forEach(fn => fn.apply(this, args));
-            } catch (e) {
-                console.error(`${this.name}: Exception in '${evt}' event handler`, e);
-            }
+        if (!this.events || !this.events[evt]) {
+            return;
+        }
+
+        try { 
+            this.events[evt].forEach(fn => fn.apply(this, args));
+        } catch (e) {
+            console.error(`${this.name}: Exception in '${evt}' event handler`, e);
+        }
     }
 
     protected next() {
         // Try running the next task, if not currently running one 
-        if (!this.currentTask) {
-            var task = this.queue.shift();
-            // skip cancelled tasks
-            while (task && task.cancellationToken.cancelled)
-                task = this.queue.shift();
-            if (task) {
-                try {
-                    this.currentTask = task;
-                    if (task.timeout) {
-                        task.timeoutHandle = setTimeout(
-                            () => {
-                                this.emit(sequentialTaskQueueEvents.timeout);
-                                this.cancelTask(task, cancellationTokenReasons.timeout);
-                            }, 
-                            task.timeout);
-                    }
-                    let res = task.callback.apply(undefined, task.args);
-                    if (res && isPromise(res)) {
-                        res.then(result => {
-                                task.result = result;
-                                this.doneTask(task);
-                            },
-                            err => {
-                                this.doneTask(task, err);
-                            });
-                    } else {
-                        task.result = res;
-                        this.doneTask(task);
-                    }
+        if (this.currentTask) {
+            return;
+        }
+    
+        var tempTask = this.queue.shift();
+        // skip cancelled tasks
+        while (tempTask && tempTask.cancellationToken.cancelled) {
+            tempTask = this.queue.shift();
+        }
 
-                } catch (e) {
-                    this.doneTask(task, e);
-                }
-            } else {
-                // queue is empty, call waiters
-                this.callWaiters(); 
+        if (!tempTask) {
+            // queue is empty, call waiters
+            this.callWaiters(); 
+            return;
+        }
+
+        const task = tempTask;
+
+        try {
+            this.currentTask = task;
+
+            if (task.timeout) {
+                task.timeoutHandle = setTimeout(
+                    () => {
+                        this.emit(sequentialTaskQueueEvents.timeout);
+                        this.cancelTask(task, cancellationTokenReasons.timeout);
+                    }, 
+                    task.timeout);
             }
+
+            const res = task.callback.apply(undefined, task.args);
+
+            if (res && isPromise(res)) {
+                res.then(
+                    result => {
+                        task.result = result;
+                        this.doneTask(task);
+                    },
+                    err => this.doneTask(task, err)
+                );
+            } else {
+                task.result = res;
+                this.doneTask(task);
+            }
+        } catch (e) {
+            this.doneTask(task, e);
         }
     }
 
@@ -322,25 +336,29 @@ export class SequentialTaskQueue {
     }
 
     private doneTask(task: TaskEntry, error?: any) {
-        if (task.timeoutHandle)
+        if (task.timeoutHandle) {
             clearTimeout(task.timeoutHandle);
+        }
+
         task.cancellationToken.cancel = noop;
+
         if (error) {
             this.emit(sequentialTaskQueueEvents.error, error);
-            task.reject.call(undefined, error);
-        } else if (task.cancellationToken.cancelled)
-            task.reject.call(undefined, task.cancellationToken.reason)
-        else
-            task.resolve.call(undefined, task.result);
-        
+            task.reject!.call(undefined, error);
+        } else if (task.cancellationToken.cancelled) {
+            task.reject!.call(undefined, task.cancellationToken.reason)
+        } else {
+            task.resolve!.call(undefined, task.result);
+        }
+
         if (this.currentTask === task) {
             this.currentTask = undefined;
             if (!this.queue.length) {
                 this.emit(sequentialTaskQueueEvents.drained);
                 this.callWaiters();
-            }
-            else
+            } else {
                 this.scheduler.schedule(() => this.next());
+            }
         }
     }
 
@@ -357,11 +375,11 @@ interface TaskEntry {
     timeoutHandle?: any;
     cancellationToken: CancellationToken;
     result?: any;
-    resolve: (value: any | PromiseLike<any>) => void;
-    reject: (reason?: any) => void;
+    resolve?: (value: any | PromiseLike<any>) => void;
+    reject?: (reason?: any) => void;
 }
 
-function noop() {
+function noop(): void {
 }
 
 function isPromise(obj: any): obj is PromiseLike<any> {
