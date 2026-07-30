@@ -16,28 +16,27 @@
     "index.js"
   ],
   "scripts": {
-    "test": "mocha --require ts-node/register/transpile-only test/**/*.ts"
+    "clean": "rm -rf dist",
+    "clean:api": "rm -rf doc/api",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "test": "mocha --require ts-node/register/transpile-only test/**/*.ts",
+    "test:debug": "mocha --timeout 0 --require ts-node/register/transpile-only test/**/*.ts",
+    "doc:readme": "node scripts/build-readme.js",
+    "doc:api": "npm run clean:api && typedoc --plugin typedoc-plugin-markdown --out doc/api --name SequentialTaskQueue src/sequential-task-queue.ts",
+    "doc": "npm run doc:readme && npm run doc:api",
+    "prepublishOnly": "npm run build && npm test && npm run doc"
   },
   "devDependencies": {
     "@types/mocha": "^2.2.39",
     "@types/node": "^7.0.5",
     "@types/sinon": "^1.16.35",
-    "del": "^2.2.2",
-    "gulp": "^3.9.1",
-    "gulp-mocha": "^3.0.1",
-    "gulp-rename": "^1.2.2",
-    "gulp-sourcemaps": "^2.4.1",
-    "gulp-template": "^4.0.0",
-    "gulp-typedoc": "^2.0.2",
-    "gulp-typescript": "^3.1.5",
+    "lodash": "^4.17.21",
     "mocha": "^10.0.0",
-    "run-sequence": "^1.2.2",
     "sinon": "^1.17.7",
     "snip-text": "^1.0.0",
     "ts-node": "^10.0.0",
-    "typedoc": "^0.5.6",
-    "typedoc-markdown-theme": "0.0.4",
-    "typescript": "^5.4.0",
-    "vinyl-paths": "^2.1.0"
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.12.0",
+    "typescript": "^5.4.0"
   }
 }

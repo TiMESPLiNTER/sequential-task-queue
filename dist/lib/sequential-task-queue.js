@@ -1,4 +1,6 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SequentialTaskQueue = exports.sequentialTaskQueueEvents = exports.cancellationTokenReasons = void 0;
 /**
  * Standard cancellation reasons. {@link SequentialTaskQueue} sets {@link CancellationToken.reason}
  * to one of these values when cancelling a task for a reason other than the user code calling
@@ -22,6 +24,10 @@ exports.sequentialTaskQueueEvents = {
  * FIFO task queue to run tasks in predictable order, without concurrency.
  */
 class SequentialTaskQueue {
+    /** Indicates if the queue has been closed. Calling {@link SequentialTaskQueue.push} on a closed queue will result in an exception. */
+    get isClosed() {
+        return this._isClosed;
+    }
     /**
      * Creates a new instance of {@link SequentialTaskQueue}
      * @param options - Configuration options for the task queue.
@@ -36,15 +42,11 @@ class SequentialTaskQueue {
         this.name = options.name || "SequentialTaskQueue";
         this.scheduler = options.scheduler || SequentialTaskQueue.defaultScheduler;
     }
-    /** Indicates if the queue has been closed. Calling {@link SequentialTaskQueue.push} on a closed queue will result in an exception. */
-    get isClosed() {
-        return this._isClosed;
-    }
     /**
      * Adds a new task to the queue.
-     * @param task - The function to call when the task is run
-     * @param timeout - An optional timeout (in milliseconds) for the task, after which it should be cancelled to avoid hanging tasks clogging up the queue.
-     * @returns A {@link CancellationToken} that may be used to cancel the task before it completes.
+     * @param {Function} task - The function to call when the task is run
+     * @param {TaskOptions} options - An object containing arguments and options for the task.
+     * @returns {CancellablePromiseLike<any>} A promise that can be used to await or cancel the task.
      */
     push(task, options) {
         if (this._isClosed)
@@ -71,15 +73,16 @@ class SequentialTaskQueue {
     }
     /**
      * Cancels the currently running task (if any), and clears the queue.
+     * @param {any} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}.
      * @returns {Promise} A Promise that is fulfilled when the queue is empty and the current task has been cancelled.
      */
-    cancel() {
+    cancel(reason = exports.cancellationTokenReasons.cancel) {
         if (this.currentTask)
-            this.cancelTask(this.currentTask, exports.cancellationTokenReasons.cancel);
+            this.cancelTask(this.currentTask, reason);
         var queue = this.queue.splice(0);
         // Cancel all and emit a drained event if there were tasks waiting in the queue
         if (queue.length) {
-            queue.forEach(task => this.cancelTask(task, exports.cancellationTokenReasons.cancel));
+            queue.forEach(task => this.cancelTask(task, reason));
             this.emit(exports.sequentialTaskQueueEvents.drained);
         }
         return this.wait();
@@ -88,13 +91,14 @@ class SequentialTaskQueue {
      * Closes the queue, preventing new tasks to be added.
      * Any calls to {@link SequentialTaskQueue.push} after closing the queue will result in an exception.
      * @param {boolean} cancel - Indicates that the queue should also be cancelled.
+     * @param {any} reason - The reason of the cancellation, passed to {@link SequentialTaskQueue.cancel} when `cancel` is `true`.
      * @returns {Promise} A Promise that is fulfilled when the queue has finished executing remaining tasks.
      */
-    close(cancel) {
+    close(cancel, reason) {
         if (!this._isClosed) {
             this._isClosed = true;
             if (cancel)
-                return this.cancel();
+                return this.cancel(reason);
         }
         return this.wait();
     }
@@ -234,10 +238,10 @@ class SequentialTaskQueue {
         waiters.forEach(waiter => waiter());
     }
 }
+exports.SequentialTaskQueue = SequentialTaskQueue;
 SequentialTaskQueue.defaultScheduler = {
     schedule: callback => setTimeout(callback, 0)
 };
-exports.SequentialTaskQueue = SequentialTaskQueue;
 function noop() {
 }
 function isPromise(obj) {
@@ -248,3 +252,4 @@ SequentialTaskQueue.defaultScheduler = {
         ? callback => setImmediate(callback)
         : callback => setTimeout(callback, 0)
 };
+//# sourceMappingURL=sequential-task-queue.js.map

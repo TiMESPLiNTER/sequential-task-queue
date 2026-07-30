@@ -30,7 +30,7 @@ queue.push(() => {
     console.log("1");
 });
 queue.push(() => {
-    return new Promise(resolve => {
+    return new Promise<void>(resolve => {
         setTimeout(() => {
             console.log("2");
             resolve();
@@ -65,10 +65,10 @@ has been cancelled. The `Promise` returned by `push` is extended with a `cancel`
 
 ```js
 var queue = new SequentialTaskQueue();
-var task = queue.push(token => {
+var task = queue.push((token: CancellationToken) => {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, 100);
-    }).then(() => new Promise((resolve, reject) => {
+    }).then(() => new Promise<void>((resolve, reject) => {
         if (token.cancelled)
             reject();
         else
@@ -96,8 +96,8 @@ The timeout value is supplied to `push` in the second argument, which is interpr
 ```js
 var queue = new SequentialTaskQueue();
 // ...
-function onEcho(query) {
-    queue.push(token => 
+function onEcho(query: string) {
+    queue.push((token: CancellationToken) => 
         backend.echo(query).then(response => {
             if (!token.cancelled) {
                 state.addResponse("Server responded: " + response);
@@ -112,7 +112,7 @@ In most scenarios, you will be using the queue to respond to frequent, asynchron
 coming from a server:
 
 ```js
-backend.on("notification", (data) => {
+backend.on("notification", (data: string) => {
     queue.push(() => {
         console.log(data);
         // todo: do something with data
@@ -124,11 +124,11 @@ Every time the event handler is called, it creates a new function (and a closure
 Let's rewrite this, now using the `args` property of the task options:
 
 ```js
-backend.on("notification", (data) => {
+backend.on("notification", (data: string) => {
     queue.push(handleNotifiation, { args: data });
 });
 
-function handleNotifiation(data) {
+function handleNotifiation(data: string) {
     console.log(data);
     // todo: do something with data
 }
@@ -161,7 +161,7 @@ to do so, pass a truthful value as its first parameter.
 ```js
 var queue = new SequentialTaskQueue();
 // ...
-function deactivate(done) {
+function deactivate(done: () => void) {
     queue.close(true).then(done);                
 } 
 ```
@@ -192,10 +192,6 @@ The `timeout` event is emitted when a task is cancelled due to an expired timeou
 
 ---
 ## Changelog
-
-### 1.2.1
-
-`next` and `emit` are now protected instead of private.
 
 ### 1.2.0
 

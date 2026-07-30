@@ -74,7 +74,9 @@ export interface CancellationToken {
  * {@link CancellationToken.cancel}.
  */
 export declare var cancellationTokenReasons: {
+    /** Used when the task was cancelled in response to a call to {@link SequentialTaskQueue.cancel} */
     cancel: any;
+    /** Used when the task was cancelled after its timeout has passed */
     timeout: any;
 };
 /**
@@ -109,7 +111,7 @@ export declare class SequentialTaskQueue {
     private events;
     name: string;
     /** Indicates if the queue has been closed. Calling {@link SequentialTaskQueue.push} on a closed queue will result in an exception. */
-    readonly isClosed: boolean;
+    get isClosed(): boolean;
     /**
      * Creates a new instance of {@link SequentialTaskQueue}
      * @param options - Configuration options for the task queue.
@@ -117,23 +119,25 @@ export declare class SequentialTaskQueue {
     constructor(options?: SequentialTaskQueueOptions);
     /**
      * Adds a new task to the queue.
-     * @param task - The function to call when the task is run
-     * @param timeout - An optional timeout (in milliseconds) for the task, after which it should be cancelled to avoid hanging tasks clogging up the queue.
-     * @returns A {@link CancellationToken} that may be used to cancel the task before it completes.
+     * @param {Function} task - The function to call when the task is run
+     * @param {TaskOptions} options - An object containing arguments and options for the task.
+     * @returns {CancellablePromiseLike<any>} A promise that can be used to await or cancel the task.
      */
     push(task: Function, options?: TaskOptions): CancellablePromiseLike<any>;
     /**
      * Cancels the currently running task (if any), and clears the queue.
+     * @param {any} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}.
      * @returns {Promise} A Promise that is fulfilled when the queue is empty and the current task has been cancelled.
      */
-    cancel(): PromiseLike<any>;
+    cancel(reason?: any): PromiseLike<any>;
     /**
      * Closes the queue, preventing new tasks to be added.
      * Any calls to {@link SequentialTaskQueue.push} after closing the queue will result in an exception.
      * @param {boolean} cancel - Indicates that the queue should also be cancelled.
+     * @param {any} reason - The reason of the cancellation, passed to {@link SequentialTaskQueue.cancel} when `cancel` is `true`.
      * @returns {Promise} A Promise that is fulfilled when the queue has finished executing remaining tasks.
      */
-    close(cancel?: boolean): PromiseLike<any>;
+    close(cancel?: boolean, reason?: any): PromiseLike<any>;
     /**
      * Returns a promise that is fulfilled when the queue is empty.
      * @returns {Promise}
@@ -161,7 +165,7 @@ export declare class SequentialTaskQueue {
     off(evt: string, handler: Function): void;
     protected emit(evt: string, ...args: any[]): void;
     protected next(): void;
-    private cancelTask(task, reason?);
-    private doneTask(task, error?);
-    private callWaiters();
+    private cancelTask;
+    private doneTask;
+    private callWaiters;
 }

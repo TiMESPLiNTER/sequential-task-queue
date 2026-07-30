@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "types": [
+            "node"
+        ],
+        "rootDir": "src",
+        "outDir": "dist/lib",
+        "declarationDir": "dist/types"
+    },
+    "files": [
+        "src/sequential-task-queue.ts"
+    ]
+}
