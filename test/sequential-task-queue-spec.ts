@@ -1,6 +1,6 @@
-﻿import * as assert from "assert";
+﻿import assert from "assert";
 import { SequentialTaskQueue, CancellationToken, cancellationTokenReasons } from "../src/sequential-task-queue";
-import * as sinon from "sinon";
+import sinon from "sinon";
 
 process.on('unhandledRejection', () => {
   console.log('Suppressed unhandled rejection');
