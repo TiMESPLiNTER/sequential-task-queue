@@ -2,7 +2,7 @@
 import { SequentialTaskQueue, CancellationToken, cancellationTokenReasons } from "../src/sequential-task-queue";
 import * as sinon from "sinon";
 
-process.on('unhandledRejection', (err, p) => {
+process.on('unhandledRejection', () => {
   console.log('Suppressed unhandled rejection');
 });
 
@@ -426,7 +426,7 @@ describe("SequentialTaskQueue", () => {
                     var err = sinon.spy();
                     var timeouts = [50, 500, 50];
 
-                    function pushTask(id, delay) {
+                    function pushTask(id: number, delay: number) {
                         queue.push((ct: CancellationToken) => new Promise<void>(resolve => {
                             setTimeout(() => {
                                 if (!ct.cancelled)
@@ -510,7 +510,7 @@ describe("CancellationToken", () => {
                 var queue = new SequentialTaskQueue();
                 var res: number[] = [];
                 queue.push(() => res.push(1));
-                var ct = queue.push(token => new Promise<void>((resolve, reject) => {
+                var ct = queue.push((token: CancellationToken) => new Promise<void>((resolve, reject) => {
                     if (token.cancelled)
                         reject();
                     setTimeout(() => {

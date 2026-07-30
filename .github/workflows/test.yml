@@ -12,4 +12,4 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npx -y -p typescript@5.4 -p ts-node@10 -p mocha@10 mocha --require ts-node/register/transpile-only test/sequential-task-queue-spec.ts
+      - run: npm test
