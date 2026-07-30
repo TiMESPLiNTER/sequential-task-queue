@@ -43,7 +43,7 @@ describe("SequentialTaskQueue", () => {
 
         this.timeout(0);
 
-        var results = [];
+        var results: number[] = [];
 
         function createTask(id: number) {
             return () => {
@@ -52,14 +52,14 @@ describe("SequentialTaskQueue", () => {
         }
 
         function createAsyncTask(id: number) {
-            return () => new Promise(resolve => {
+            return () => new Promise<void>(resolve => {
                 results.push(id);
                 resolve();
             });
         }
 
         function createScheduledTask(id: number) {
-            return () => new Promise(resolve => {
+            return () => new Promise<void>(resolve => {
                 setTimeout(() => {
                     results.push(id);
                     resolve();
@@ -71,7 +71,7 @@ describe("SequentialTaskQueue", () => {
 
         var queue = new SequentialTaskQueue();
         var count = 10;
-        var expected = [];
+        var expected: number[] = [];
         var idx = 0;
         while (idx < count) {
             for (let i = 0; i < functions.length; i++) {
@@ -147,7 +147,7 @@ describe("SequentialTaskQueue", () => {
 
         it("should resolve after resolved Promise", () => {
             var queue = new SequentialTaskQueue();
-            queue.push(() => new Promise(resolve => { resolve(); }));
+            queue.push(() => new Promise<void>(resolve => { resolve(); }));
             return queue.wait();
         });
 
@@ -371,6 +371,17 @@ describe("SequentialTaskQueue", () => {
             return queue.wait().then(() => assert(spy.notCalled));
         });
 
+        it("should reject queued tasks with the given reason", () => {
+            var queue = new SequentialTaskQueue();
+            var p = queue.push(() => new Promise(resolve => setTimeout(resolve, 200)));
+            var p2 = queue.push(() => { });
+            queue.cancel("meh");
+            return Promise.all([
+                p.then(() => assert.ok(false), reason => assert.equal(reason, "meh")),
+                p2.then(() => assert.ok(false), reason => assert.equal(reason, "meh"))
+            ]);
+        });
+
         it("should cancel current deferred task", () => {
             var queue = new SequentialTaskQueue();
             var spy = sinon.spy();
@@ -416,7 +427,7 @@ describe("SequentialTaskQueue", () => {
                     var timeouts = [50, 500, 50];
 
                     function pushTask(id, delay) {
-                        queue.push((ct: CancellationToken) => new Promise(resolve => {
+                        queue.push((ct: CancellationToken) => new Promise<void>(resolve => {
                             setTimeout(() => {
                                 if (!ct.cancelled)
                                     spy(id);
@@ -499,7 +510,7 @@ describe("CancellationToken", () => {
                 var queue = new SequentialTaskQueue();
                 var res = [];
                 queue.push(() => res.push(1));
-                var ct = queue.push(token => new Promise((resolve, reject) => {
+                var ct = queue.push(token => new Promise<void>((resolve, reject) => {
                     if (token.cancelled)
                         reject();
                     setTimeout(() => {

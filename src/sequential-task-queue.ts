@@ -173,15 +173,16 @@ export class SequentialTaskQueue {
 
     /**
      * Cancels the currently running task (if any), and clears the queue.
+     * @param {any} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}. 
      * @returns {Promise} A Promise that is fulfilled when the queue is empty and the current task has been cancelled.
      */
-    cancel(): PromiseLike<any> {
+    cancel(reason: any = cancellationTokenReasons.cancel): PromiseLike<any> {
         if (this.currentTask) 
-            this.cancelTask(this.currentTask, cancellationTokenReasons.cancel);
+            this.cancelTask(this.currentTask, reason);
         var queue = this.queue.splice(0);
         // Cancel all and emit a drained event if there were tasks waiting in the queue
         if (queue.length) {
-            queue.forEach(task => this.cancelTask(task, cancellationTokenReasons.cancel));
+            queue.forEach(task => this.cancelTask(task, reason));
             this.emit(sequentialTaskQueueEvents.drained);
         }
         return this.wait();
@@ -191,13 +192,14 @@ export class SequentialTaskQueue {
      * Closes the queue, preventing new tasks to be added. 
      * Any calls to {@link SequentialTaskQueue.push} after closing the queue will result in an exception.
      * @param {boolean} cancel - Indicates that the queue should also be cancelled.
+     * @param {any} reason - The reason of the cancellation, passed to {@link SequentialTaskQueue.cancel} when `cancel` is `true`.
      * @returns {Promise} A Promise that is fulfilled when the queue has finished executing remaining tasks.  
      */
-    close(cancel?: boolean): PromiseLike<any> {
+    close(cancel?: boolean, reason?: any): PromiseLike<any> {
         if (!this._isClosed) {
             this._isClosed = true;
             if (cancel)
-                return this.cancel();
+                return this.cancel(reason);
         }
         return this.wait();
     }
