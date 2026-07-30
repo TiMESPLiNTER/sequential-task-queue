@@ -34,7 +34,7 @@ describe("Examples", () => {
                 console.log("1");
             });
             queue.push(() => {
-                return new Promise(resolve => {
+                return new Promise<void>(resolve => {
                     setTimeout(() => {
                         console.log("2");
                         resolve();
@@ -77,7 +77,7 @@ describe("Examples", () => {
             var task = queue.push(token => {
                 return new Promise((resolve, reject) => {
                     setTimeout(resolve, 100);
-                }).then(() => new Promise((resolve, reject) => {
+                }).then(() => new Promise<void>((resolve, reject) => {
                     if (token.cancelled)
                         reject();
                     else

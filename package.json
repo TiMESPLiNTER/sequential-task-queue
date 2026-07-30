@@ -33,7 +33,7 @@
     "snip-text": "^1.0.0",
     "typedoc": "^0.5.6",
     "typedoc-markdown-theme": "0.0.4",
-    "typescript": "^2.1.6",
+    "typescript": "^5.4.0",
     "vinyl-paths": "^2.1.0"
   }
 }

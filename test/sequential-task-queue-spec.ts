@@ -289,7 +289,7 @@ describe("SequentialTaskQueue", () => {
             queue.push(() => {
                 spy(1);
             });
-            queue.push(() => new Promise(resolve => {
+            queue.push(() => new Promise<void>(resolve => {
                 setTimeout(() => {
                     spy(2);
                     resolve();
@@ -323,7 +323,7 @@ describe("SequentialTaskQueue", () => {
             var queue = new SequentialTaskQueue();
             var spy = sinon.spy();
             queue.on("timeout", () => spy("timeout"));
-            queue.push((ct: CancellationToken) => new Promise(resolve => {
+            queue.push((ct: CancellationToken) => new Promise<void>(resolve => {
                 setTimeout(() => {
                     if (!ct.cancelled) {
                         spy("hello");
@@ -339,15 +339,15 @@ describe("SequentialTaskQueue", () => {
 
         it("should prevent queued tasks from running", () => {
             var queue = new SequentialTaskQueue();
-            var res = [];
+            var res: number[] = [];
             queue.push(() => res.push(1));
-            queue.push(() => new Promise(resolve => {
+            queue.push(() => new Promise<void>(resolve => {
                 setTimeout(() => {
                     res.push(2);
                     resolve();
                 }, 50);
             }));
-            queue.push(() => new Promise(resolve => {
+            queue.push(() => new Promise<void>(resolve => {
                 setTimeout(() => {
                     res.push(3);
                     resolve();
@@ -387,7 +387,7 @@ describe("SequentialTaskQueue", () => {
             var spy = sinon.spy();
 
             queue.push((ct: CancellationToken) =>
-                new Promise((resolve, reject) => {
+                new Promise<void>((resolve, reject) => {
                     setTimeout(() => {
                         // cancel() should not have been cancelled at this point
                         if (ct.cancelled)
@@ -398,7 +398,7 @@ describe("SequentialTaskQueue", () => {
                         }
                     },
                         10);
-                }).then(() => new Promise((resolve, reject) => {
+                }).then(() => new Promise<void>((resolve, reject) => {
                     setTimeout(() => {
                         // cancel() should have been cancelled at this point
                         if (ct.cancelled)
@@ -462,7 +462,7 @@ describe("SequentialTaskQueue", () => {
         it("should execute remaining tasks", () => {
 
             var queue = new SequentialTaskQueue();
-            var res = [];
+            var res: number[] = [];
             queue.push(() => res.push(1));
             queue.push(() => res.push(2));
             queue.close();
@@ -494,7 +494,7 @@ describe("CancellationToken", () => {
     describe("# cancel", () => {
         it("should prevent task from running", () => {
             var queue = new SequentialTaskQueue();
-            var res = [];
+            var res: number[] = [];
             queue.push(() => res.push(1));
             var ct = queue.push(() => res.push(2));
             queue.push(() => res.push(3));
@@ -508,7 +508,7 @@ describe("CancellationToken", () => {
             var clock = sinon.useFakeTimers();
             try {
                 var queue = new SequentialTaskQueue();
-                var res = [];
+                var res: number[] = [];
                 queue.push(() => res.push(1));
                 var ct = queue.push(token => new Promise<void>((resolve, reject) => {
                     if (token.cancelled)

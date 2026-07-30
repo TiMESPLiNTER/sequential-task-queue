@@ -4,6 +4,7 @@
         "module": "commonjs",
         "sourceMap": true,
         "declaration": true,
+        "esModuleInterop": false,
         "lib": [
             "es5",
             "es6"
