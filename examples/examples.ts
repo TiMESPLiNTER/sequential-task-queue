@@ -74,7 +74,7 @@ describe("Examples", () => {
         it("", () => {
             // --- snippet: Task cancellation ---
             var queue = new SequentialTaskQueue();
-            var task = queue.push(token => {
+            var task = queue.push((token: CancellationToken) => {
                 return new Promise((resolve, reject) => {
                     setTimeout(resolve, 100);
                 }).then(() => new Promise<void>((resolve, reject) => {
@@ -102,21 +102,21 @@ describe("Examples", () => {
             var resp = [];
             var timeouts = [20, 2000, 10]; 
             var backend = {
-                echo: query => new Promise(resolve => {
-                    setTimeout(() => resolve(query), timeouts.shift());
+                echo: (query: string) => new Promise(resolve => {
+                    setTimeout(() => resolve(query), timeouts.shift() || 0);
                 }),
             };
             var state = {
                 list: [],
-                addResponse: function(response) { 
+                addResponse: (response: string) => { 
                     this.list.push(response); 
                 }
             };
             // --- snip ---
             var queue = new SequentialTaskQueue();
             // ...
-            function onEcho(query) {
-                queue.push(token => 
+            function onEcho(query: string) {
+                queue.push((token: CancellationToken) => 
                     backend.echo(query).then(response => {
                         if (!token.cancelled) {
                             state.addResponse("Server responded: " + response);
@@ -133,7 +133,7 @@ describe("Examples", () => {
 
     describe("Arguments", () => {
         it("Without using args", function() {
-            var handler: Function;
+            var handler!: Function;
             var backend = {
                 on: (evt: string, cb: Function) => {
                     handler = cb;
@@ -142,7 +142,7 @@ describe("Examples", () => {
             sinon.spy(console, "log");
             var queue = new SequentialTaskQueue();
             // --- snippet: Arguments 1 ---
-            backend.on("notification", (data) => {
+            backend.on("notification", (data: string) => {
                 queue.push(() => {
                     console.log(data);
                     // todo: do something with data
@@ -163,7 +163,7 @@ describe("Examples", () => {
         });
 
         it("With args", function() {
-            var handler: Function;
+            var handler!: Function;
             var backend = {
                 on: (evt: string, cb: Function) => {
                     handler = cb;
@@ -172,11 +172,11 @@ describe("Examples", () => {
             sinon.spy(console, "log");
             var queue = new SequentialTaskQueue();
             // --- snippet: Arguments 2 ---
-            backend.on("notification", (data) => {
+            backend.on("notification", (data: string) => {
                 queue.push(handleNotifiation, { args: data });
             });
 
-            function handleNotifiation(data) {
+            function handleNotifiation(data: string) {
                 console.log(data);
                 // todo: do something with data
             }
@@ -215,12 +215,12 @@ describe("Examples", () => {
             // --- snippet: Close ---
             var queue = new SequentialTaskQueue();
             // ...
-            function deactivate(done) {
+            function deactivate(done: () => void) {
                 queue.close(true).then(done);                
             } 
             // --- snip ---
             queue.push(() => new Promise(resolve => setTimeout(resolve, 500)));
-            return new Promise(resolve => {
+            return new Promise<void>(resolve => {
                 deactivate(resolve);
             });
         });
