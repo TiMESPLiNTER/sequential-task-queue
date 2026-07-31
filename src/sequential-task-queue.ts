@@ -390,7 +390,16 @@ interface TaskEntry {
     timeoutHandle?: ReturnType<typeof setTimeout>;
     cancellationToken: CancellationToken;
     result?: unknown;
-    resolve?: (value: unknown) => void;
+    // any (not unknown) is intentional: this is the type-erasure boundary between
+    // push<T>()'s generic, per-task resolve (value: T | PromiseLike<T>) => void and
+    // this shared, heterogeneous queue that stores tasks of many unrelated T's at
+    // once. unknown is contravariant-unsafe here across TS versions (works under
+    // lenient/non-strict function type checking, but not under stricter checking a
+    // newer compiler may apply) - any is bivariant by design and side-steps that
+    // entirely. Safety is guaranteed by construction (each resolve is only ever
+    // called with its own task's result), not by the type system.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolve?: (value: any) => void;
     reject?: (reason?: unknown) => void;
 }
 
