@@ -114,9 +114,17 @@ The `timeout` event is emitted when a task is cancelled due to an expired timeou
 ---
 ## Changelog
 
+### 1.3.0
+
+`SequentialTaskQueue.cancel` and `SequentialTaskQueue.close` now accept an optional `reason` argument, used as the cancellation reason for any tasks cancelled as a result, mirroring the existing per-task `CancellationToken.cancel(reason)` behavior.
+
+### 1.2.1
+
+`next` and `emit` are now protected instead of private.
+
 ### 1.2.0
 
 `SequentialTaskQueue.push` now returns a `Promise`. Earlier versions only returned a cancellation token.
 
 ---
-This file was generated using [gulp-template](http://github.com/sindresorhus/gulp-template) and [snip-text](http://github.com/BalassaMarton/snip-text)
+This file was generated using [lodash templates](https://lodash.com/docs/#template) and [snip-text](http://github.com/BalassaMarton/snip-text)

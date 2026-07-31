@@ -1,4 +1,6 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SequentialTaskQueue = exports.sequentialTaskQueueEvents = exports.cancellationTokenReasons = void 0;
 /**
  * Standard cancellation reasons. {@link SequentialTaskQueue} sets {@link CancellationToken.reason}
  * to one of these values when cancelling a task for a reason other than the user code calling
@@ -22,34 +24,34 @@ exports.sequentialTaskQueueEvents = {
  * FIFO task queue to run tasks in predictable order, without concurrency.
  */
 class SequentialTaskQueue {
-    /**
-     * Creates a new instance of {@link SequentialTaskQueue}
-     * @param options - Configuration options for the task queue.
-    */
-    constructor(options) {
-        this.queue = [];
-        this._isClosed = false;
-        this.waiters = [];
-        if (!options)
-            options = {};
-        this.defaultTimeout = options.timeout;
-        this.name = options.name || "SequentialTaskQueue";
-        this.scheduler = options.scheduler || SequentialTaskQueue.defaultScheduler;
-    }
     /** Indicates if the queue has been closed. Calling {@link SequentialTaskQueue.push} on a closed queue will result in an exception. */
     get isClosed() {
         return this._isClosed;
     }
     /**
+     * Creates a new instance of {@link SequentialTaskQueue}
+     * @param options - Configuration options for the task queue.
+    */
+    constructor(options = {}) {
+        this.queue = [];
+        this._isClosed = false;
+        this.waiters = [];
+        this.events = {};
+        this.defaultTimeout = options.timeout;
+        this.name = options.name || "SequentialTaskQueue";
+        this.scheduler = options.scheduler || SequentialTaskQueue.defaultScheduler;
+    }
+    /**
      * Adds a new task to the queue.
-     * @param task - The function to call when the task is run
-     * @param timeout - An optional timeout (in milliseconds) for the task, after which it should be cancelled to avoid hanging tasks clogging up the queue.
-     * @returns A {@link CancellationToken} that may be used to cancel the task before it completes.
+     * @param {Function} task - The function to call when the task is run
+     * @param {TaskOptions} options - An object containing arguments and options for the task.
+     * @returns {CancellablePromiseLike<T>} A promise that can be used to await or cancel the task.
      */
-    push(task, options) {
-        if (this._isClosed)
+    push(task, options = {}) {
+        if (this._isClosed) {
             throw new Error(`${this.name} has been previously closed`);
-        var taskEntry = {
+        }
+        const taskEntry = {
             callback: task,
             args: options && options.args ? (Array.isArray(options.args) ? options.args.slice() : [options.args]) : [],
             timeout: options && options.timeout !== undefined ? options.timeout : this.defaultTimeout,
@@ -62,24 +64,28 @@ class SequentialTaskQueue {
         taskEntry.args.push(taskEntry.cancellationToken);
         this.queue.push(taskEntry);
         this.scheduler.schedule(() => this.next());
-        var result = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject) => {
             taskEntry.resolve = resolve;
             taskEntry.reject = reject;
         });
-        result.cancel = (reason) => taskEntry.cancellationToken.cancel(reason);
+        const result = Object.assign(promise, {
+            cancel: (reason) => taskEntry.cancellationToken.cancel(reason)
+        });
         return result;
     }
     /**
      * Cancels the currently running task (if any), and clears the queue.
+     * @param {unknown} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}.
      * @returns {Promise} A Promise that is fulfilled when the queue is empty and the current task has been cancelled.
      */
-    cancel() {
-        if (this.currentTask)
-            this.cancelTask(this.currentTask, exports.cancellationTokenReasons.cancel);
-        var queue = this.queue.splice(0);
+    cancel(reason = exports.cancellationTokenReasons.cancel) {
+        if (this.currentTask) {
+            this.cancelTask(this.currentTask, reason);
+        }
+        const queue = this.queue.splice(0);
         // Cancel all and emit a drained event if there were tasks waiting in the queue
         if (queue.length) {
-            queue.forEach(task => this.cancelTask(task, exports.cancellationTokenReasons.cancel));
+            queue.forEach(task => this.cancelTask(task, reason));
             this.emit(exports.sequentialTaskQueueEvents.drained);
         }
         return this.wait();
@@ -88,13 +94,15 @@ class SequentialTaskQueue {
      * Closes the queue, preventing new tasks to be added.
      * Any calls to {@link SequentialTaskQueue.push} after closing the queue will result in an exception.
      * @param {boolean} cancel - Indicates that the queue should also be cancelled.
+     * @param {unknown} reason - The reason of the cancellation, passed to {@link SequentialTaskQueue.cancel} when `cancel` is `true`.
      * @returns {Promise} A Promise that is fulfilled when the queue has finished executing remaining tasks.
      */
-    close(cancel) {
+    close(cancel, reason) {
         if (!this._isClosed) {
             this._isClosed = true;
-            if (cancel)
-                return this.cancel();
+            if (cancel) {
+                return this.cancel(reason);
+            }
         }
         return this.wait();
     }
@@ -103,8 +111,9 @@ class SequentialTaskQueue {
      * @returns {Promise}
      */
     wait() {
-        if (!this.currentTask && this.queue.length === 0)
+        if (!this.currentTask && this.queue.length === 0) {
             return Promise.resolve();
+        }
         return new Promise(resolve => {
             this.waiters.push(resolve);
         });
@@ -124,7 +133,7 @@ class SequentialTaskQueue {
      * @param {Function} handler - Event handler. When invoking the handler, the queue will set itself as the `this` argument of the call.
      */
     once(evt, handler) {
-        var cb = (...args) => {
+        const cb = (...args) => {
             this.removeListener(evt, cb);
             handler.apply(this, args);
         };
@@ -136,16 +145,20 @@ class SequentialTaskQueue {
      * @param {Function} handler - Event handler to be removed
      */
     removeListener(evt, handler) {
-        if (this.events) {
-            var list = this.events[evt];
-            if (list) {
-                var i = 0;
-                while (i < list.length) {
-                    if (list[i] === handler)
-                        list.splice(i, 1);
-                    else
-                        i++;
-                }
+        if (!this.events) {
+            return;
+        }
+        const list = this.events[evt];
+        if (!list) {
+            return;
+        }
+        let i = 0;
+        while (i < list.length) {
+            if (list[i] === handler) {
+                list.splice(i, 1);
+            }
+            else {
+                i++;
             }
         }
     }
@@ -154,52 +167,54 @@ class SequentialTaskQueue {
         return this.removeListener(evt, handler);
     }
     emit(evt, ...args) {
-        if (this.events && this.events[evt])
-            try {
-                this.events[evt].forEach(fn => fn.apply(this, args));
-            }
-            catch (e) {
-                console.error(`${this.name}: Exception in '${evt}' event handler`, e);
-            }
+        if (!this.events || !this.events[evt]) {
+            return;
+        }
+        try {
+            this.events[evt].forEach(fn => { fn.apply(this, args); });
+        }
+        catch (e) {
+            console.error(`${this.name}: Exception in '${evt}' event handler`, e);
+        }
     }
     next() {
         // Try running the next task, if not currently running one 
-        if (!this.currentTask) {
-            var task = this.queue.shift();
-            // skip cancelled tasks
-            while (task && task.cancellationToken.cancelled)
-                task = this.queue.shift();
-            if (task) {
-                try {
-                    this.currentTask = task;
-                    if (task.timeout) {
-                        task.timeoutHandle = setTimeout(() => {
-                            this.emit(exports.sequentialTaskQueueEvents.timeout);
-                            this.cancelTask(task, exports.cancellationTokenReasons.timeout);
-                        }, task.timeout);
-                    }
-                    let res = task.callback.apply(undefined, task.args);
-                    if (res && isPromise(res)) {
-                        res.then(result => {
-                            task.result = result;
-                            this.doneTask(task);
-                        }, err => {
-                            this.doneTask(task, err);
-                        });
-                    }
-                    else {
-                        task.result = res;
-                        this.doneTask(task);
-                    }
-                }
-                catch (e) {
-                    this.doneTask(task, e);
-                }
+        if (this.currentTask) {
+            return;
+        }
+        let tempTask = this.queue.shift();
+        // skip cancelled tasks
+        while (tempTask && tempTask.cancellationToken.cancelled) {
+            tempTask = this.queue.shift();
+        }
+        if (!tempTask) {
+            // queue is empty, call waiters
+            this.callWaiters();
+            return;
+        }
+        const task = tempTask;
+        try {
+            this.currentTask = task;
+            if (task.timeout) {
+                task.timeoutHandle = setTimeout(() => {
+                    this.emit(exports.sequentialTaskQueueEvents.timeout);
+                    this.cancelTask(task, exports.cancellationTokenReasons.timeout);
+                }, task.timeout);
+            }
+            const res = task.callback.apply(undefined, task.args);
+            if (res && isPromise(res)) {
+                res.then(result => {
+                    task.result = result;
+                    this.doneTask(task);
+                }, err => this.doneTask(task, err));
             }
             else {
-                // queue is empty, call waiters
-                this.callWaiters();
+                task.result = res;
+                this.doneTask(task);
             }
+        }
+        catch (e) {
+            this.doneTask(task, e);
         }
     }
     cancelTask(task, reason) {
@@ -208,43 +223,53 @@ class SequentialTaskQueue {
         this.doneTask(task);
     }
     doneTask(task, error) {
-        if (task.timeoutHandle)
+        var _a, _b, _c;
+        if (task.timeoutHandle) {
             clearTimeout(task.timeoutHandle);
+        }
         task.cancellationToken.cancel = noop;
         if (error) {
             this.emit(exports.sequentialTaskQueueEvents.error, error);
-            task.reject.call(undefined, error);
+            (_a = task.reject) === null || _a === void 0 ? void 0 : _a.call(undefined, error);
         }
-        else if (task.cancellationToken.cancelled)
-            task.reject.call(undefined, task.cancellationToken.reason);
-        else
-            task.resolve.call(undefined, task.result);
-        if (this.currentTask === task) {
-            this.currentTask = undefined;
-            if (!this.queue.length) {
-                this.emit(exports.sequentialTaskQueueEvents.drained);
-                this.callWaiters();
-            }
-            else
-                this.scheduler.schedule(() => this.next());
+        else if (task.cancellationToken.cancelled) {
+            (_b = task.reject) === null || _b === void 0 ? void 0 : _b.call(undefined, task.cancellationToken.reason);
+        }
+        else {
+            (_c = task.resolve) === null || _c === void 0 ? void 0 : _c.call(undefined, task.result);
+        }
+        if (this.currentTask !== task) {
+            return;
+        }
+        this.currentTask = undefined;
+        if (!this.queue.length) {
+            this.emit(exports.sequentialTaskQueueEvents.drained);
+            this.callWaiters();
+        }
+        else {
+            this.scheduler.schedule(() => this.next());
         }
     }
     callWaiters() {
-        let waiters = this.waiters.splice(0);
+        const waiters = this.waiters.splice(0);
         waiters.forEach(waiter => waiter());
     }
 }
+exports.SequentialTaskQueue = SequentialTaskQueue;
 SequentialTaskQueue.defaultScheduler = {
     schedule: callback => setTimeout(callback, 0)
 };
-exports.SequentialTaskQueue = SequentialTaskQueue;
 function noop() {
 }
 function isPromise(obj) {
-    return (obj && typeof obj.then === "function");
+    return (obj !== null &&
+        (typeof obj === 'object' || typeof obj === 'function') &&
+        'then' in obj &&
+        typeof obj.then === "function");
 }
 SequentialTaskQueue.defaultScheduler = {
     schedule: typeof setImmediate === "function"
-        ? callback => setImmediate(callback)
-        : callback => setTimeout(callback, 0)
+        ? (callback) => { setImmediate(callback); }
+        : (callback) => { setTimeout(callback, 0); }
 };
+//# sourceMappingURL=sequential-task-queue.js.map

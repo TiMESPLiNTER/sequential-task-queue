@@ -4,17 +4,13 @@
         "module": "commonjs",
         "sourceMap": true,
         "declaration": true,
-        "lib": [
-            "es5",
-            "es6"
-        ],
-        "types": [
-            "node",
-            "sinon",
-            "mocha"
-        ]
+        "esModuleInterop": true,
+        "rootDir": "./src",
+        "outDir": "./dist/lib",
+        "declarationDir": "./dist/types",
+        "types": ["node"]
     },
-    "exclude": [
-        "node_modules"
+    "include": [
+        "./src"
     ]
 }
