@@ -390,15 +390,6 @@ interface TaskEntry {
     timeoutHandle?: ReturnType<typeof setTimeout>;
     cancellationToken: CancellationToken;
     result?: unknown;
-    // Declared with method syntax (not as a function-typed property) on purpose: this
-    // is the type-erasure boundary between push<T>()'s per-task resolve, whose real
-    // type is (value: T | PromiseLike<T>) => void, and this shared queue that holds
-    // tasks of many unrelated T's at once. TypeScript compares method declarations
-    // bivariantly, so assigning the T-specific resolve here is allowed, while calls
-    // still type-check against unknown. A function-typed property would be checked
-    // contravariantly and reject the assignment under stricter compiler settings.
-    // Safety is guaranteed by construction - each stored resolve is only ever called
-    // with its own task's result - not by the type system.
     resolve?(value: unknown): void;
     reject?(reason?: unknown): void;
 }
@@ -420,16 +411,3 @@ SequentialTaskQueue.defaultScheduler = {
         ? (callback): void => { setImmediate(callback); }
         : (callback): void => { setTimeout(callback, 0); }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -5,21 +5,12 @@
         "sourceMap": true,
         "declaration": true,
         "esModuleInterop": true,
-        // Explicit so the compiler never has to infer it from whichever subset of files
-        // is being compiled (TypeScript 6 errors instead of guessing). tsconfig.build.json
-        // narrows this to "src" for the published build.
-        "rootDir": ".",
-        "lib": [
-            "es5",
-            "es6"
-        ],
-        "types": [
-            "node",
-            "sinon",
-            "mocha"
-        ]
+        "rootDir": "./src",
+        "outDir": "./dist/lib",
+        "declarationDir": "./dist/types",
+        "types": ["node"]
     },
-    "exclude": [
-        "node_modules"
+    "include": [
+        "./src"
     ]
 }

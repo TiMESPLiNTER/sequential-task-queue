@@ -18,7 +18,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "clean:api": "rimraf doc/api",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "build": "npm run clean && tsc",
     "test": "mocha --require ts-node/register/transpile-only test/**/*.ts",
     "test:debug": "mocha --timeout 0 --require ts-node/register/transpile-only test/**/*.ts",
     "doc:readme": "node scripts/build-readme.js",
