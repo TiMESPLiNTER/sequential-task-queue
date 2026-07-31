@@ -23,7 +23,7 @@ module.exports = tseslint.config(
         extends: [...tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
-                project: "./tsconfig.json",
+                project: "./tsconfig.eslint.json",
                 tsconfigRootDir: __dirname,
             },
         },
