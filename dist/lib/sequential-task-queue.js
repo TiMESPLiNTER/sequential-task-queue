@@ -45,7 +45,7 @@ class SequentialTaskQueue {
      * Adds a new task to the queue.
      * @param {Function} task - The function to call when the task is run
      * @param {TaskOptions} options - An object containing arguments and options for the task.
-     * @returns {CancellablePromiseLike<any>} A promise that can be used to await or cancel the task.
+     * @returns {CancellablePromiseLike<T>} A promise that can be used to await or cancel the task.
      */
     push(task, options = {}) {
         if (this._isClosed) {

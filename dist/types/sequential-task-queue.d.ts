@@ -1,5 +1,5 @@
 type EventHandler = (...args: any[]) => void;
-type Task = (...args: any[]) => unknown;
+type Task<T = unknown> = (...args: any[]) => T;
 /**
  * Represents an object that schedules a function for asynchronous execution.
  * The default implementation used by {@link SequentialTaskQueue} calls {@link setImmediate} when available,
@@ -121,9 +121,9 @@ export declare class SequentialTaskQueue {
      * Adds a new task to the queue.
      * @param {Function} task - The function to call when the task is run
      * @param {TaskOptions} options - An object containing arguments and options for the task.
-     * @returns {CancellablePromiseLike<any>} A promise that can be used to await or cancel the task.
+     * @returns {CancellablePromiseLike<T>} A promise that can be used to await or cancel the task.
      */
-    push(task: Task, options?: TaskOptions): CancellablePromiseLike<unknown>;
+    push<T>(task: Task<T>, options?: TaskOptions): CancellablePromiseLike<T>;
     /**
      * Cancels the currently running task (if any), and clears the queue.
      * @param {unknown} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}.

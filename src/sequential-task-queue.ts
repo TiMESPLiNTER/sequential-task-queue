@@ -1,5 +1,5 @@
 ﻿type EventHandler = (...args: any[]) => void;
-type Task = (...args: any[]) => unknown;
+type Task<T = unknown> = (...args: any[]) => T;
 
 /** 
  * Represents an object that schedules a function for asynchronous execution.
@@ -146,9 +146,9 @@ export class SequentialTaskQueue {
      * Adds a new task to the queue.
      * @param {Function} task - The function to call when the task is run
      * @param {TaskOptions} options - An object containing arguments and options for the task.
-     * @returns {CancellablePromiseLike<any>} A promise that can be used to await or cancel the task.
+     * @returns {CancellablePromiseLike<T>} A promise that can be used to await or cancel the task.
      */
-    public push(task: Task, options: TaskOptions = {}): CancellablePromiseLike<unknown> {
+    public push<T>(task: Task<T>, options: TaskOptions = {}): CancellablePromiseLike<T> {
         if (this._isClosed) {
             throw new Error(`${this.name} has been previously closed`);
         }
@@ -166,11 +166,11 @@ export class SequentialTaskQueue {
         taskEntry.args.push(taskEntry.cancellationToken);
         this.queue.push(taskEntry);
         this.scheduler.schedule(() => this.next());
-        const promise = new Promise<unknown>((resolve, reject) => {
+        const promise = new Promise<T>((resolve, reject) => {
             taskEntry.resolve = resolve;
             taskEntry.reject = reject;
         });
-        const result: CancellablePromiseLike<unknown> = Object.assign(promise, {
+        const result: CancellablePromiseLike<T> = Object.assign(promise, {
             cancel: (reason?: unknown) => taskEntry.cancellationToken.cancel(reason)
         });
         return result;

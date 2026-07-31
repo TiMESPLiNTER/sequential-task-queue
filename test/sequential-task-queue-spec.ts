@@ -138,7 +138,7 @@ describe("SequentialTaskQueue", () => {
         it("should resolve after synchronous task", () => {
             const queue = new SequentialTaskQueue();
             const spy = sinon.spy();
-            queue.push(() => spy());
+            queue.push(() => { spy(); });
             return queue.wait().then(() => assert(spy.called));
         });
 
