@@ -1,5 +1,5 @@
 ﻿type EventHandler = (...args: any[]) => void;
-type Task<T = unknown> = (...args: any[]) => T;
+type Task<T = unknown> = (...args: any[]) => T | PromiseLike<T>;
 
 /** 
  * Represents an object that schedules a function for asynchronous execution.
