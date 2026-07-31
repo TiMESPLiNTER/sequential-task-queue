@@ -6,5 +6,12 @@
         //"src/**/*.js": true,
         //"test/**/*.js": true
     },
-    "js/ts.tsdk.path": "node_modules/typescript/lib"
+    // Use the TypeScript version from this project's devDependencies (currently 5.9.3)
+    // instead of the one bundled with the editor, so the editor, `npm run build` and CI
+    // all type-check with the same compiler.
+    // Note: for security reasons the editor never runs a workspace TypeScript without
+    // explicit consent. If you get errors here that `npm run build` doesn't report, run
+    // "TypeScript: Select TypeScript Version..." and pick "Use Workspace Version".
+    "js/ts.tsdk.path": "node_modules/typescript/lib",
+    "js/ts.tsdk.promptToUseWorkspaceVersion": true
 }
