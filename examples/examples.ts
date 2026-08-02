@@ -8,10 +8,10 @@ describe("Examples", () => {
             const consoleLogSpy = sinon.spy(console, "log");
             // --- snippet: Basic usage ---
             const queue = new SequentialTaskQueue();
-            queue.push(() => {
+            void queue.push(() => {
                 console.log("first task");
             });
-            queue.push(() => {
+            void queue.push(() => {
                 console.log("second task");
             });
             // --- snip --- 
@@ -30,10 +30,10 @@ describe("Examples", () => {
             const consoleLogSpy = sinon.spy(console, "log");
             // --- snippet: Promises  --- 
             const queue = new SequentialTaskQueue();
-            queue.push(() => {
+            void queue.push(() => {
                 console.log("1");
             });
-            queue.push(() => {
+            void queue.push(() => {
                 return new Promise<void>(resolve => {
                     setTimeout(() => {
                         console.log("2");
@@ -41,7 +41,7 @@ describe("Examples", () => {
                     }, 500);
                 });
             });
-            queue.push(() => {
+            void queue.push(() => {
                 return new Promise((resolve, reject) => {
                     setTimeout(() => {
                         console.log("3");
@@ -49,7 +49,7 @@ describe("Examples", () => {
                     }, 100);
                 });
             });
-            queue.push(() => {
+            void queue.push(() => {
                 console.log("4");
             });
 
@@ -116,7 +116,7 @@ describe("Examples", () => {
             const queue = new SequentialTaskQueue();
             // ...
             function onEcho(query: string): void {
-                queue.push((token: CancellationToken) => 
+                void queue.push((token: CancellationToken) => 
                     backend.echo(query).then(response => {
                         if (!token.cancelled) {
                             state.addResponse("Server responded: " + response);
@@ -143,7 +143,7 @@ describe("Examples", () => {
             const queue = new SequentialTaskQueue();
             // --- snippet: Arguments 1 ---
             backend.on("notification", (data: string) => {
-                queue.push(() => {
+                void queue.push(() => {
                     console.log(data);
                     // todo: do something with data
                 });
@@ -173,7 +173,7 @@ describe("Examples", () => {
             const queue = new SequentialTaskQueue();
             // --- snippet: Arguments 2 ---
             backend.on("notification", (data: string) => {
-                queue.push(handleNotifiation, { args: data });
+                void queue.push(handleNotifiation, { args: data });
             });
 
             function handleNotifiation(data: string): void {
@@ -202,10 +202,10 @@ describe("Examples", () => {
             const task3 = task2;
             // --- snippet: Wait ---
             const queue = new SequentialTaskQueue();
-            queue.push(task1);
-            queue.push(task2);
-            queue.push(task3);
-            queue.wait().then(() => { /*...*/ });
+            void queue.push(task1);
+            void queue.push(task2);
+            void queue.push(task3);
+            void queue.wait().then(() => { /*...*/ });
             // --- snip ---
         });
     });
@@ -216,10 +216,10 @@ describe("Examples", () => {
             const queue = new SequentialTaskQueue();
             // ...
             function deactivate(done: () => void): void {
-                queue.close(true).then(done);                
+                void queue.close(true).then(done);                
             } 
             // --- snip ---
-            queue.push(() => new Promise(resolve => setTimeout(resolve, 500)));
+            void queue.push(() => new Promise(resolve => setTimeout(resolve, 500)));
             return new Promise<void>(resolve => {
                 deactivate(resolve);
             });
@@ -230,7 +230,7 @@ describe("Examples", () => {
         it("", () => {
             // --- snippet: Errors ---
             const queue = new SequentialTaskQueue();
-            queue.push(() => new Promise((resolve, _reject) => {
+            void queue.push(() => new Promise((resolve, _reject) => {
                 setTimeout(resolve, 100);
             }).then(() => new Promise((_resolve, _reject) => {
                 throw new Error("Epic fail");
