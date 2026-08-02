@@ -1,6 +1,6 @@
 {
   "name": "@timesplinter/sequential-task-queue",
-  "version": "1.4.1",
+  "version": "1.4.0",
   "license": "MIT",
   "description": "FIFO task queue for node and the browser",
   "author": {

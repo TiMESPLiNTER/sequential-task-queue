@@ -194,6 +194,14 @@ The `timeout` event is emitted when a task is cancelled due to an expired timeou
 ---
 ## Changelog
 
+### 1.4.0
+
+`CancellablePromiseLike` now extends `Promise<T>` instead of `PromiseLike<T>`, so `.catch` and `.finally` can be called directly on the value returned by `push`. `SequentialTaskQueue.cancel`, `close`, and `wait` now return `Promise<unknown>` instead of `PromiseLike<unknown>` for consistency.
+
+### 1.3.1
+
+`Task` functions can now return `T | PromiseLike<T>` (previously only `T`), fixing a type error when pushing async functions to the queue.
+
 ### 1.3.0
 
 `SequentialTaskQueue.cancel` and `SequentialTaskQueue.close` now accept an optional `reason` argument, used as the cancellation reason for any tasks cancelled as a result, mirroring the existing per-task `CancellationToken.cancel(reason)` behavior.
