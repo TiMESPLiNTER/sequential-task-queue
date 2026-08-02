@@ -100,7 +100,7 @@ export const sequentialTaskQueueEvents = {
 /**
  * Promise interface with the ability to cancel.
  */
-export interface CancellablePromiseLike<T> extends PromiseLike<T> {
+export interface CancellablePromiseLike<T> extends Promise<T> {
     /**
      * Cancels (and consequently, rejects) the task associated with the Promise.
      * @param reason - Reason of the cancellation. This value will be passed when rejecting this Promise.
@@ -181,7 +181,7 @@ export class SequentialTaskQueue {
      * @param {unknown} reason - The reason of the cancellation, see {@link CancellationToken.reason}. Defaults to {@link cancellationTokenReasons.cancel}. 
      * @returns {Promise} A Promise that is fulfilled when the queue is empty and the current task has been cancelled.
      */
-    public cancel(reason: unknown = cancellationTokenReasons.cancel): PromiseLike<unknown> {
+    public cancel(reason: unknown = cancellationTokenReasons.cancel): Promise<unknown> {
         if (this.currentTask) {
             this.cancelTask(this.currentTask, reason);
         }
@@ -201,7 +201,7 @@ export class SequentialTaskQueue {
      * @param {unknown} reason - The reason of the cancellation, passed to {@link SequentialTaskQueue.cancel} when `cancel` is `true`.
      * @returns {Promise} A Promise that is fulfilled when the queue has finished executing remaining tasks.  
      */
-    public close(cancel?: boolean, reason?: unknown): PromiseLike<unknown> {
+    public close(cancel?: boolean, reason?: unknown): Promise<unknown> {
         if (!this._isClosed) {
             this._isClosed = true;
             if (cancel) {
@@ -215,7 +215,7 @@ export class SequentialTaskQueue {
      * Returns a promise that is fulfilled when the queue is empty.
      * @returns {Promise}
      */
-    public wait(): PromiseLike<unknown> {
+    public wait(): Promise<unknown> {
         if (!this.currentTask && this.queue.length === 0) {
             return Promise.resolve();
         }
